@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_bloc_event_counter_app/bloc/counter_bloc.dart';
 import 'package:flutter_bloc_event_counter_app/bloc/counter_event.dart';
+import 'package:flutter_bloc_event_counter_app/bloc_api/user_bloc.dart';
+import 'package:flutter_bloc_event_counter_app/bloc_api/user_event.dart';
+import 'package:flutter_bloc_event_counter_app/bloc_api/user_state.dart';
 
 import 'bloc/counter_state.dart';
+import 'bloc_api/model/user_model.dart';
+import 'bloc_pattern_counter.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +21,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (valueContext) => CounterBloc(),
+      create: (valueContext) => UserBloc(),
       child: MaterialApp(
         title: 'Flutter Demo',
         theme: ThemeData(
@@ -40,19 +45,34 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    context.read<UserBloc>().add(GetAllUserList());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           title: Text(widget.title),
         ),
-        body: BlocBuilder<CounterBloc, CounterState>(
+        body: BlocBuilder<UserBloc, UserState>(
           builder: (context, state) {
-            if (state is CounterInit) {
-              return _view(context, 0);
+            if (state is UserLoading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
             }
-            if (state is CounterUpdate) {
-              return _view(context, state.counter);
+            if (state is UserError) {
+              return Center(
+                child: Text(state.message),
+              );
+            }
+
+            if (state is UserDataLoaded) {
+              return _view(context, state.userModelList);
             }
 
             return Container();
@@ -60,32 +80,16 @@ class _MyHomePageState extends State<MyHomePage> {
         ));
   }
 
-  Widget _view(BuildContext context, int value) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          value.toString(),
-          style: const TextStyle(fontSize: 20),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            FloatingActionButton(
-              onPressed: () {
-                context.read<CounterBloc>().add(CounterIncrease());
-              },
-              child: const Icon(Icons.add),
-            ),
-            FloatingActionButton(
-              onPressed: () {
-                context.read<CounterBloc>().add(CounterDecrease());
-              },
-              child: const Icon(Icons.remove),
-            )
-          ],
-        )
-      ],
-    );
+  Widget _view(BuildContext context, List<UserModel> userModelList) {
+    return ListView.builder(
+        itemCount: userModelList.length,
+        itemBuilder: (context, itemIndex) {
+          UserModel userModel = userModelList[itemIndex];
+          return ListTile(
+            leading: Text(userModel.id.toString()),
+            title: Text(userModel.name.toString()),
+            subtitle: Text(userModel.email.toString()),
+          );
+        });
   }
 }
